@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校務系統網站 - 修復版</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Toast 容器 -->
+    <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 11"></div>
+
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="#" onclick="showSection('home')">
+                    <i class="bi bi-mortarboard me-2"></i>校務系統網站
+                </a>
+                
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto" id="navMenu">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('home')">
+                                <i class="bi bi-house me-1"></i>首頁
+                            </a>
+                        </li>
+                        <li class="nav-item" id="nav-student" style="display: none;">
+                            <a class="nav-link" href="#" onclick="showSection('student')">
+                                <i class="bi bi-person me-1"></i>學生專區
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <button class="btn btn-outline-light" onclick="showLoginModal()">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>登入
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container-fluid p-0">
+        <!-- 首頁 -->
+        <section id="home" class="content-section">
+            <div class="hero-section text-center text-white py-5">
+                <div class="container">
+                    <h1 class="display-4 mb-4">歡迎使用校務系統</h1>
+                    <p class="lead">一站式校園服務平台</p>
+                    <button class="btn btn-light btn-lg" onclick="showLoginModal()">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>開始使用
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 學生專區 -->
+        <section id="student" class="content-section" style="display: none;">
+            <div class="container mt-4">
+                <h2>學生專區</h2>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">基本資料</h5>
+                                <p class="card-text">查詢個人基本資料</p>
+                                <button class="btn btn-primary" onclick="showFeature('student-info')">查看</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 登入模態框 -->
+    <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>登入系統
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">帳號</label>
+                            <input type="text" class="form-control" id="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">密碼</label>
+                            <input type="password" class="form-control" id="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userType" class="form-label">身份</label>
+                            <select class="form-select" id="userType" required>
+                                <option value="">請選擇身份</option>
+                                <option value="student">學生</option>
+                                <option value="staff">教職員</option>
+                                <option value="hr">人事</option>
+                                <option value="admin">管理員</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">登入</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能區域 -->
+    <div id="feature-area" class="container mt-4" style="display: none;">
+        <div id="feature-content"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 當前使用者
+        let currentUser = null;
+
+        // 頁面載入完成後執行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('頁面載入完成');
+            
+            // 檢查是否有保存的登入狀態
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    updateUI();
+                } catch (error) {
+                    console.error('解析用戶資料失敗:', error);
+                    localStorage.removeItem('currentUser');
+                }
+            }
+
+            // 綁定登入表單事件
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+                console.log('登入表單事件綁定成功');
+            } else {
+                console.error('找不到登入表單');
+            }
+        });
+
+        // 顯示登入模態框
+        function showLoginModal() {
+            console.log('顯示登入模態框');
+            const modal = new bootstrap.Modal(document.getElementById('loginModal'));
+            modal.show();
+        }
+
+        // 處理登入
+        async function handleLogin(e) {
+            e.preventDefault();
+            console.log('開始登入處理');
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const userType = document.getElementById('userType').value;
+            
+            console.log('登入資料:', { username, userType });
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        userType: userType
+                    })
+                });
+                
+                console.log('Response status:', response.status);
+                const result = await response.json();
+                console.log('Response data:', result);
+                
+                if (response.ok && result.success) {
+                    currentUser = {
+                        username: result.user.username,
+                        name: result.user.name,
+                        userType: result.user.userType,
+                        token: result.token
+                    };
+                    
+                    // 儲存到 localStorage
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    
+                    // 關閉模態框
+                    bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+                    
+                    // 更新介面
+                    updateUI();
+                    
+                    // 顯示成功訊息
+                    showToast('success', '登入成功', `歡迎 ${result.user.name}！`);
+                    
+                    // 清空表單
+                    document.getElementById('loginForm').reset();
+                } else {
+                    showToast('danger', '登入失敗', result.message || '帳號、密碼或身份不正確');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('danger', '登入失敗', '連接伺服器失敗');
+            }
+        }
+
+        // 更新UI
+        function updateUI() {
+            console.log('更新UI:', currentUser);
+            const loginBtn = document.querySelector('.btn-outline-light');
+            
+            if (currentUser) {
+                loginBtn.innerHTML = `<i class="bi bi-person-check me-1"></i>${currentUser.name}`;
+                loginBtn.onclick = logout;
+                
+                // 顯示對應的導覽選項
+                if (currentUser.userType === 'student') {
+                    document.getElementById('nav-student').style.display = 'block';
+                }
+            } else {
+                loginBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i>登入';
+                loginBtn.onclick = showLoginModal;
+                
+                // 隱藏所有導覽選項
+                document.getElementById('nav-student').style.display = 'none';
+            }
+        }
+
+        // 顯示區塊
+        function showSection(sectionId) {
+            console.log('顯示區塊:', sectionId);
+            
+            // 隱藏所有區塊
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // 顯示指定區塊
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.style.display = 'block';
+            }
+            
+            // 隱藏功能區域
+            document.getElementById('feature-area').style.display = 'none';
+        }
+
+        // 顯示功能
+        function showFeature(featureId) {
+            console.log('顯示功能:', featureId);
+            
+            if (!currentUser) {
+                showToast('warning', '請先登入', '請先登入後再使用功能');
+                return;
+            }
+            
+            // 隱藏所有區塊
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // 顯示功能區域
+            document.getElementById('feature-area').style.display = 'block';
+            
+            // 載入功能內容
+            loadFeatureContent(featureId);
+        }
+
+        // 載入功能內容
+        function loadFeatureContent(featureId) {
+            const content = document.getElementById('feature-content');
+            
+            switch(featureId) {
+                case 'student-info':
+                    content.innerHTML = `
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="bi bi-person me-2"></i>基本資料</h5>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>姓名:</strong> ${currentUser.name}</p>
+                                <p><strong>帳號:</strong> ${currentUser.username}</p>
+                                <p><strong>身份:</strong> ${currentUser.userType}</p>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                default:
+                    content.innerHTML = `
+                        <div class="alert alert-info">
+                            功能 ${featureId} 正在開發中...
+                        </div>
+                    `;
+            }
+        }
+
+        // 登出
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            updateUI();
+            showSection('home');
+            showToast('info', '登出成功', '您已成功登出系統');
+        }
+
+        // 顯示Toast
+        function showToast(type, title, message) {
+            const toastContainer = document.getElementById('toast-container');
+            const toastId = 'toast-' + Date.now();
+            
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            toast.className = `toast align-items-center text-white bg-${type} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <strong>${title}</strong><br>${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            // 自動移除Toast
+            toast.addEventListener('hidden.bs.toast', function () {
+                toast.remove();
+            });
+        }
+
+        // 初始化
+        showSection('home');
+    </script>
+</body>
+</html>
